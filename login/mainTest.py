@@ -11,6 +11,7 @@ if __name__ == "__main__":
     kiwoom = KiwoomLogin()
 
     kiwoom.SetInputValue("종목코드", "005930")
+    kiwoom.SetInputValue("틱범위", "1:1")
     # CommRqData("RQName", "OPT10001", "0","화면번호");
     kiwoom.CommRqData("opt10001", "opt10001", 0, "0101")
 
