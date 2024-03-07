@@ -27,7 +27,6 @@ class KiwoomLogin:
 
     def SetInputValue(self, id, value):
         self.ocx.dynamicCall("SetInputValue(QString, QString)", id, value)
-        self.ocx.dynamicCall("SetInputValue(QString, QString)", id, value)
 
     def CommRqData(self, rqname, trcode, next, screen):
         self.tr = False
@@ -41,32 +40,24 @@ class KiwoomLogin:
         data = self.ocx.dynamicCall("GetCommData(QString, QString, int, QString)", trcode, rqname, index, item)
         return data.strip()
     
-    def OnReceiveTrData(self, screen, rqname, trcode, record, next):
+    # ! 요청 데이터
+    def OnReceiveTrData(self, sScrNo, sRQName, sTrCode, sRecordName, sPrevNext, nDataLength, sErrorCode, sMessage, sSplmMsg):
         self.tr = True
+        print("TR MSG : ", sScrNo, sRQName, sTrCode, sRecordName, sPrevNext, nDataLength, sErrorCode, sMessage, sSplmMsg)
 
-        # rows = self.GetRepeatCnt(trcode, record)
-        # if rows == 0:
-        #     rows = 1
+        # self.sPre
 
-        # data = []
-        # for row in range(rows):
-        #     date = self.GetCommData(trcode, rqname, row, "일자")
-        #     open = self.GetCommData(trcode, rqname, row, "시가")
-        #     high = self.GetCommData(trcode, rqname, row, "고가")
-        #     low  = self.GetCommData(trcode, rqname, row, "저가")
-        #     close= self.GetCommData(trcode, rqname, row, "현재가")
-        #     data.append([date, open, high, low, close])
+        # self.SetInputValue("종목코드", code)
+        # self.SetInputValue("틱범위", 1)
+        # self.SetInputValue("수정주가구분", 0)
+        # self.CommRqData("myrequest", "opt10081", 0, "0101")
 
-        # self.tr_queue.put((data, next))
-        name = self.GetCommData(trcode, rqname, 0, "종목명")
+    def tickChart(self, code):
+        self.SetInputValue("종목코드", code)
+        self.SetInputValue("틱범위", 1)
+        self.SetInputValue("수정주가구분", 0)
+        self.CommRqData('opt10079_req', "opt10079", "0", "0101")
         
-        data = (name)
-        self.tr_data[trcode] = data
-        print("==> name : ", data)
-        print("==============================================")
-        
-        # name = self.GetCommData(trcode, rqname, 0, "종목명")
-        # print("==> 종목명 : ", name)
 
     def GetRepeatCnt(self, trcode, record):
         data = self.ocx.dynamicCall("GetRepeatCnt(QString, QString)", trcode, record)
