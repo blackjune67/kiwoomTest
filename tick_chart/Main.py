@@ -22,6 +22,7 @@ class Main(QAxWidget):
         self.tr_event_loop = None
         self.sPrevNext = None
         self.end_date = None
+        self.start_time = None
 
     def gen_scrno(self):
         self.scrno = str(int(self.scrno) + 1)
@@ -80,6 +81,7 @@ class Main(QAxWidget):
         self.set_input_value("틱범위", "1")
         self.set_input_value("수정주가구분", "0")
         self.comm_rq_data(f'opt10079_req', "opt10079", '0', self.gen_scrno())
+        self.start_time = time.time()  # 시작 시간 기록
 
         # 연속조회 (sPrevNext 변수가 None이 아니라 2일 경우)
         # while self.sPrevNext is not None:
@@ -88,12 +90,6 @@ class Main(QAxWidget):
         #     self.comm_rq_data(f'opt10079_req', "opt10079", '2', self.gen_scrno())
 
     def _opt10080(self, rqname, trcode):
-        start = time.time()
-        math.factorial(100000)
-        end = time.time()
-        sec = (end - start)
-        result = timedelta(seconds=sec)
-
         # 조회된 데이터에서 종목코드를 가져옴 (싱글데이터)
         code = self._comm_get_data(trcode, "", rqname, 0, "종목코드")
 
@@ -111,7 +107,7 @@ class Main(QAxWidget):
         df = pd.DataFrame.from_dict(total_ret, orient='index')
         df.columns = ['현재가', '시가', '고가', '저가']
         df['datetime'] = pd.to_datetime(df.index, format="%Y%m%d%H%M%S")
-        df['datetime'] = pd.StringDtype('%Y-%m-%d %H:%M:%S')
+        # df['datetime'] = pd.StringDtype('%Y-%m-%d %H:%M:%S')
         # df['datetime'] = pd.strftime('%Y-%m-%d %H:%M:%S')
         
         # 최종 조회일자 : 해당 일자이전 기간이 조회데이터에 포함되면 조회를 멈춤
@@ -128,7 +124,21 @@ class Main(QAxWidget):
         df = df.reset_index(drop=True)
         
         print(df)
-        print('API 시간 : ', result)
+        self.getTime()  # 데이터 가져오는 데 걸린 시간 출력
+
+    # def getTime(self):
+    #     start = time.time()
+    #     math.factorial(100000)
+    #     end = time.time()
+    #     sec = (end - start)
+    #     result = timedelta(seconds=sec)
+    #     print('API 시간 : ', result)
+        
+    def getTime(self):
+        end_time = time.time()
+        elapsed_time = end_time - self.start_time
+        result = timedelta(seconds=elapsed_time)
+        print('데이터 조회 시간 : ', result)
 
         
 if __name__ == "__main__":
@@ -138,10 +148,14 @@ if __name__ == "__main__":
     main.comm_connect()
     main.end_date = datetime(2024, 3, 7)  # 현재부터 해당 날짜까지 조회
 
-    
-
-    
-
-    code_list = ['005930']  # 조회대상 종목코드 지정
+    # 조회대상 종목코드 지정
+    # 삼성전자, SK하이닉스, 금양, LG에너지솔루션(373220)
+    code_list = ['005930', '000660', '001570']
     for code in code_list:
         main.req_tick_chart(code)
+    
+    main.getTime()
+
+
+
+    
