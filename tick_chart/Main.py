@@ -4,15 +4,12 @@ from PyQt5.QAxContainer import *
 from PyQt5.QtCore import *
 import pandas as pd
 from datetime import *
-# import sqlite3
 import time
-import math
 from ItemList import ItemList
 import pprint
 
 # 초당 조회 횟수를 회피하기 위한 대기시간 지정
 TIME_TERM = 0.5
-# MAX_THREAD = 3
 
 class Main(QAxWidget):
     def __init__(self):
@@ -46,7 +43,7 @@ class Main(QAxWidget):
 
     def _event_connect(self, nErrCode):
         if nErrCode == 0:
-            print('로그인완료')
+            print('로그인 성공!')
             print('=' * 50)
         self.login_event_loop.exit()
 
@@ -73,7 +70,7 @@ class Main(QAxWidget):
         return ret
 
     def _receive_tr_data(self, sScrNo, sRQName, sTrCode, sRecordName, sPrevNext, nDataLength, sErrorCode, sMessage, sSplmMsg):
-        print('TR_Message:', sScrNo, sRQName, sTrCode, sRecordName, sPrevNext, nDataLength, sErrorCode, sMessage, sSplmMsg)
+        # print('TR_Message:', sScrNo, sRQName, sTrCode, sRecordName, sPrevNext, nDataLength, sErrorCode, sMessage, sSplmMsg)
         self.sPrevNext = sPrevNext
 
         if sRQName == "opt10079_req":
@@ -94,16 +91,10 @@ class Main(QAxWidget):
         self.start_time = time.time()  # 시작 시간 기록
         self.comm_rq_data(f'opt10079_req', "opt10079", '0', self.gen_scrno())
 
-        # 연속조회 (sPrevNext 변수가 None이 아니라 2일 경우)
-        # while self.sPrevNext is not None:
-        #     time.sleep(TIME_TERM)
-        #     self.set_input_value("종목코드", code)
-        #     self.comm_rq_data(f'opt10079_req', "opt10079", '2', self.gen_scrno())
-
+        
     def _opt10080(self, rqname, trcode):
         # 조회된 데이터에서 종목코드를 가져옴 (싱글데이터)
         code = self._comm_get_data(trcode, "", rqname, 0, "종목코드")
-        
 
         # 전체 데이터 개수 조회
         data_cnt = self._get_repeat_cnt(trcode, rqname)
@@ -114,34 +105,21 @@ class Main(QAxWidget):
         total_ret = []
         for i in range(data_cnt):
             ret = {key: self._comm_get_data(trcode, "", rqname, i, key) for key in ['현재가', '거래량', '체결시간']}
-            # index = self._comm_get_data(trcode, "", rqname, i, "체결시간")
             total_ret.append(ret)
-            # unique_key = f"{index}_{i}"  # 예시로 체결시간과 인덱스를 조합하여 유일한 키 생성
-            # total_ret[unique_key] = ret
-
-            # total_ret[index] = ret
-            
-        pprint.pprint(total_ret)
+                       
+        # pprint.pprint(total_ret)
 
         # 딕셔너리를 DataFrame으로 변환 / 컬럼명 변경 / datetime 컬럼 생성
-        # df = pd.DataFrame.from_dict(total_ret, orient='index')
         df = pd.DataFrame(total_ret)
         df.columns = ['현재가', '거래량', '체결시간']
-        # df['datetime'] = pd.to_datetime(df['체결시간'], format="%Y%m%d%H%M%S")
-        # df['datetime'] = df['체결시간']
-
-        # print('>>>>',df['datetime'])
-        # df = df.drop(columns=['체결시간'])  # '체결시간' 열 삭제
-        # df['datetime'] = df['datetime'].dt.strftime('%Y-%m-%d %H:%M:%S')
+        
         df['체결시간'] = pd.to_datetime(df['체결시간'], format="%Y%m%d%H%M%S")
+
         # 최종 조회일자 : 해당 일자이전 기간이 조회데이터에 포함되면 조회를 멈춤
         if df['체결시간'].iat[-1] < self.end_date:
             df = df[df['체결시간'] >= self.end_date]
             self.sPrevNext = None   
-
-        # index (YYYYMMDDHHMMSS 형태로 반환된 인덱스)를 datetime 컬럼지정 / 코드컬럼 생성
-        # df['datetime'] = df.index
-        
+       
         df['code'] = code
         df = df.reset_index(drop=True)
         self.dataframes.append(df)
@@ -162,7 +140,6 @@ class Main(QAxWidget):
         combined_df = pd.concat(self.dataframes, ignore_index=True)
         combined_df.to_csv('C:/Users/최하준/Documents/all_data.csv', index=False)
 
-        
 if __name__ == "__main__":
     app = QApplication(sys.argv)
 
@@ -174,7 +151,6 @@ if __name__ == "__main__":
 
     code_list = [item.value for item in ItemList]
 
-    # with ThreadPoolExecutor(max_workers=MAX_THREAD) as executor:
     for code in code_list:
         main.req_tick_chart(code)
     
