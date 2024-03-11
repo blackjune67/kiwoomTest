@@ -8,6 +8,7 @@ from datetime import *
 import time
 import math
 from ItemList import ItemList
+import pprint
 
 # 초당 조회 횟수를 회피하기 위한 대기시간 지정
 TIME_TERM = 0.5
@@ -110,25 +111,36 @@ class Main(QAxWidget):
         print('-' * 50)
 
         # 조회된 데이터 갯수 만큼 반복해서 데이터를 가져온 후 딕셔너리에 저장 (멀티데이터)
-        total_ret = {}
+        total_ret = []
         for i in range(data_cnt):
-            ret = {key: self._comm_get_data(trcode, "", rqname, i, key) for key in ['현재가', '거래량']}
-            index = self._comm_get_data(trcode, "", rqname, i, "체결시간")
-            total_ret[index] = ret
+            ret = {key: self._comm_get_data(trcode, "", rqname, i, key) for key in ['현재가', '거래량', '체결시간']}
+            # index = self._comm_get_data(trcode, "", rqname, i, "체결시간")
+            total_ret.append(ret)
+            # unique_key = f"{index}_{i}"  # 예시로 체결시간과 인덱스를 조합하여 유일한 키 생성
+            # total_ret[unique_key] = ret
+
+            # total_ret[index] = ret
+            
+        pprint.pprint(total_ret)
 
         # 딕셔너리를 DataFrame으로 변환 / 컬럼명 변경 / datetime 컬럼 생성
-        df = pd.DataFrame.from_dict(total_ret, orient='index')
-        df.columns = ['현재가', '거래량']
-        df['datetime'] = pd.to_datetime(df.index, format="%Y%m%d%H%M%S")
+        # df = pd.DataFrame.from_dict(total_ret, orient='index')
+        df = pd.DataFrame(total_ret)
+        df.columns = ['현재가', '거래량', '체결시간']
+        # df['datetime'] = pd.to_datetime(df['체결시간'], format="%Y%m%d%H%M%S")
+        # df['datetime'] = df['체결시간']
+
+        # print('>>>>',df['datetime'])
+        # df = df.drop(columns=['체결시간'])  # '체결시간' 열 삭제
         # df['datetime'] = df['datetime'].dt.strftime('%Y-%m-%d %H:%M:%S')
-        
+        df['체결시간'] = pd.to_datetime(df['체결시간'], format="%Y%m%d%H%M%S")
         # 최종 조회일자 : 해당 일자이전 기간이 조회데이터에 포함되면 조회를 멈춤
-        if df['datetime'].iat[-1] < self.end_date:
-            df = df[df['datetime'] >= self.end_date]
+        if df['체결시간'].iat[-1] < self.end_date:
+            df = df[df['체결시간'] >= self.end_date]
             self.sPrevNext = None   
 
         # index (YYYYMMDDHHMMSS 형태로 반환된 인덱스)를 datetime 컬럼지정 / 코드컬럼 생성
-        df['datetime'] = df.index
+        # df['datetime'] = df.index
         
         df['code'] = code
         df = df.reset_index(drop=True)
@@ -156,7 +168,7 @@ if __name__ == "__main__":
 
     main = Main()
     main.comm_connect()
-    main.end_date = datetime(2024, 3, 8)  # 현재부터 해당 날짜까지 조회
+    main.end_date = datetime(2024, 3, 11)  # 현재부터 해당 날짜까지 조회
 
     start_time_total = time.time()
 
