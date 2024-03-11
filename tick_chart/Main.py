@@ -101,8 +101,8 @@ class Main(QAxWidget):
 
     def _opt10080(self, rqname, trcode):
         # 조회된 데이터에서 종목코드를 가져옴 (싱글데이터)
-        # code = self._comm_get_data(trcode, "", rqname, 0, "종목코드")
-        code2 = self._comm_get_big_data(trcode, rqname)
+        code = self._comm_get_data(trcode, "", rqname, 0, "종목코드")
+        
 
         # 전체 데이터 개수 조회
         data_cnt = self._get_repeat_cnt(trcode, rqname)
@@ -112,18 +112,14 @@ class Main(QAxWidget):
         # 조회된 데이터 갯수 만큼 반복해서 데이터를 가져온 후 딕셔너리에 저장 (멀티데이터)
         total_ret = {}
         for i in range(data_cnt):
-            # ret = {key: self._comm_get_data(trcode, "", rqname, i, key) for key in ['현재가', '거래량']}
-            # index = self._comm_get_data(trcode, "", rqname, i, "체결시간")
-            ret = {key: self._comm_get_big_data(trcode, rqname) for key in ['현재가', '거래량']}
-            index = str(i)
-        # print("==> index : ", index)
+            ret = {key: self._comm_get_data(trcode, "", rqname, i, key) for key in ['현재가', '거래량']}
+            index = self._comm_get_data(trcode, "", rqname, i, "체결시간")
             total_ret[index] = ret
 
         # 딕셔너리를 DataFrame으로 변환 / 컬럼명 변경 / datetime 컬럼 생성
         df = pd.DataFrame.from_dict(total_ret, orient='index')
         df.columns = ['현재가', '거래량']
         df['datetime'] = pd.to_datetime(df.index, format="%Y%m%d%H%M%S")
-        df.set_index('datetime', inplace=True)
         # df['datetime'] = df['datetime'].dt.strftime('%Y-%m-%d %H:%M:%S')
         
         # 최종 조회일자 : 해당 일자이전 기간이 조회데이터에 포함되면 조회를 멈춤
@@ -134,8 +130,7 @@ class Main(QAxWidget):
         # index (YYYYMMDDHHMMSS 형태로 반환된 인덱스)를 datetime 컬럼지정 / 코드컬럼 생성
         df['datetime'] = df.index
         
-        # df['code'] = code
-        df['code'] = code2
+        df['code'] = code
         df = df.reset_index(drop=True)
         self.dataframes.append(df)
         
@@ -150,6 +145,7 @@ class Main(QAxWidget):
         print('데이터 조회 시간 : ', result)
         print('-' * 50)
 
+    # 데이터 파일로 저장
     def save_data(self):
         combined_df = pd.concat(self.dataframes, ignore_index=True)
         combined_df.to_csv('C:/Users/최하준/Documents/all_data.csv', index=False)
@@ -176,4 +172,4 @@ if __name__ == "__main__":
     result_total = timedelta(seconds=elapsed_time_total)
     print("전체 데이터 조회 시간 : ", result_total)
 
-    main.save_data() # 데이터 파일로 저장
+    main.save_data()
